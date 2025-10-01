@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manassaksi Banking - Mobile Banking App</title>
+    <title>Manassaksi Byanking - Mobile Banking App</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -55,15 +55,17 @@
         .card:hover { transform: translateY(-5px); }
         .balance-card { background: linear-gradient(135deg, var(--success-color), var(--primary-color)); color: white; text-align: center; }
         .account-card { border-left: 4px solid var(--secondary-color); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px; }
         .transfer-form, .transaction-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         .transaction-form { grid-template-columns: repeat(2, 1fr); }
-        .transaction-form input, .transaction-form select { padding: 10px; border: 1px solid var(--border-color); border-radius: 5px; }
         .notification { position: fixed; top: 20px; right: 20px; background: var(--success-color); color: white; padding: 15px; border-radius: 5px; box-shadow: var(--shadow); z-index: 1001; display: none; }
         .notification.error { background: var(--danger-color); }
         .login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); display: flex; align-items: center; justify-content: center; z-index: 2000; }
         .login-form { background: var(--card-bg); padding: 40px; border-radius: 10px; box-shadow: var(--shadow); text-align: center; width: 300px; }
         .login-form input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid var(--border-color); border-radius: 5px; }
-        .login-form button { width: 100%; padding: 10px; margin: 10px 0; }
+        .login-form button { width: 100%; padding: 10px; margin: 10px 0; background: var(--primary-color); color: white; border: none; border-radius: 5px; cursor: pointer; }
         .register-link { color: var(--secondary-color); cursor: pointer; text-decoration: underline; }
         .hidden { display: none; }
         .section { display: none; }
@@ -101,11 +103,19 @@
         .goal-progress { width: 100%; height: 20px; background: var(--border-color); border-radius: 10px; overflow: hidden; margin-top: 10px; }
         .goal-fill { height: 100%; background: var(--accent-color); transition: width 0.3s; }
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
+        .filter-section { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-section input, .filter-section select { padding: 8px; border: 1px solid var(--border-color); border-radius: 5px; }
+        .btn-primary, .btn-accent, .btn-secondary { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-accent { background: var(--accent-color); color: white; }
+        .btn-secondary { background: var(--secondary-color); color: white; }
         @media (max-width: 768px) {
             #sidebar { transform: translateX(-100%); }
             #sidebar.open { transform: translateX(0); }
             #main { margin-left: 0; }
             .transfer-form, .transaction-form { grid-template-columns: 1fr; }
+            .filter-section { flex-direction: column; }
+            .dashboard-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -113,9 +123,9 @@
     <!-- Login Screen -->
     <div id="loginScreen" class="login-screen">
         <div class="login-form">
-            <h2><i class="fas fa-university"></i> Manassaksi Banking Login</h2>
-            <input type="text" id="usernameInput" placeholder="Username">
-            <input type="password" id="passwordInput" placeholder="Password">
+            <h2><i class="fas fa-university"></i> Manassaksi Byanking Login</h2>
+            <input type="text" id="usernameInput" placeholder="Username" aria-label="Username">
+            <input type="password" id="passwordInput" placeholder="Password" aria-label="Password">
             <button class="btn-primary" onclick="login()"><i class="fas fa-sign-in-alt"></i> Login</button>
             <p class="register-link" onclick="showRegister()">Don't have an account? Register</p>
             <p id="loginError" style="color: var(--danger-color); display: none;">Invalid credentials!</p>
@@ -126,8 +136,8 @@
     <div id="registerScreen" class="login-screen" style="display: none;">
         <div class="login-form">
             <h2><i class="fas fa-user-plus"></i> Register</h2>
-            <input type="text" id="regUsername" placeholder="Username">
-            <input type="password" id="regPassword" placeholder="Password">
+            <input type="text" id="regUsername" placeholder="Username" aria-label="Username">
+            <input type="password" id="regPassword" placeholder="Password" aria-label="Password">
             <button class="btn-primary" onclick="register()"><i class="fas fa-user-plus"></i> Register</button>
             <p class="register-link" onclick="showLogin()">Already have an account? Login</p>
             <p id="registerError" style="color: var(--danger-color); display: none;">Registration failed!</p>
@@ -163,6 +173,9 @@
         <div class="nav-item" onclick="showSection('reports')">
             <i class="fas fa-file-alt"></i> Reports
         </div>
+        <div class="nav-item" onclick="showChangePasswordModal()">
+            <i class="fas fa-cog"></i> Settings
+        </div>
         <div class="nav-item" onclick="logout()">
             <i class="fas fa-sign-out-alt"></i> Logout
         </div>
@@ -171,11 +184,11 @@
     <!-- Main Content -->
     <main id="main">
         <div class="header">
-            <h1>Manassaksi Banking</h1>
+            <h1>Manassaksi Byanking</h1>
             <div>
                 <span id="currentUser"></span>
-                <button class="menu-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
-                <button class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></button>
+                <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
+                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme"><i class="fas fa-moon"></i></button>
             </div>
         </div>
 
@@ -183,31 +196,41 @@
         <section id="add-transaction" class="section">
             <h2>Add New Transaction</h2>
             <div class="card">
-                <label for="txType">Type:</label>
-                <select id="txType">
-                    <option value="income">Income</option>
-                    <option value="expense">Expense</option>
-                </select>
-                <label for="txDescription">Description:</label>
-                <input type="text" id="txDescription" placeholder="e.g., Salary, Groceries">
-                <label for="txAmount">Amount:</label>
-                <input type="number" id="txAmount" step="0.01" min="0" placeholder="0.00">
-                <label for="txCategory">Category:</label>
-                <select id="txCategory">
-                    <option value="Other">Other</option>
-                    <option value="Salary">Salary</option>
-                    <option value="Food">Food</option>
-                    <option value="Transport">Transport</option>
-                    <option value="Entertainment">Entertainment</option>
-                    <option value="Bills">Bills</option>
-                    <option value="Shopping">Shopping</option>
-                    <option value="Savings">Savings</option>
-                </select>
-                <label for="txAccount">Account:</label>
-                <select id="txAccount">
-                    <option value="checking">Checking</option>
-                    <option value="savings">Savings</option>
-                </select>
+                <div class="form-group">
+                    <label for="txType">Type:</label>
+                    <select id="txType">
+                        <option value="income">Income</option>
+                        <option value="expense">Expense</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="txDescription">Description:</label>
+                    <input type="text" id="txDescription" placeholder="e.g., Salary, Groceries">
+                </div>
+                <div class="form-group">
+                    <label for="txAmount">Amount:</label>
+                    <input type="number" id="txAmount" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="txCategory">Category:</label>
+                    <select id="txCategory">
+                        <option value="Other">Other</option>
+                        <option value="Salary">Salary</option>
+                        <option value="Food">Food</option>
+                        <option value="Transport">Transport</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Bills">Bills</option>
+                        <option value="Shopping">Shopping</option>
+                        <option value="Savings">Savings</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="txAccount">Account:</label>
+                    <select id="txAccount">
+                        <option value="checking">Checking</option>
+                        <option value="savings">Savings</option>
+                    </select>
+                </div>
                 <button class="btn-primary" onclick="addNewTransaction()">Add Transaction</button>
             </div>
         </section>
@@ -264,10 +287,11 @@
         <section id="transactions" class="section">
             <h2>Transaction History</h2>
             <div class="filter-section">
+                <input type="text" id="searchTx" placeholder="Search description..." oninput="applyFilters()">
                 <input type="date" id="filterFromTx">
                 <input type="date" id="filterToTx">
                 <select id="filterAccount"><option value="">All Accounts</option><option value="checking">Checking</option><option value="savings">Savings</option></select>
-                <button class="btn-accent" onclick="applyTxFilters()">Apply</button>
+                <button class="btn-accent" onclick="applyFilters()">Apply</button>
             </div>
             <table id="transactionsTable">
                 <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Category</th><th>Amount</th><th>Account</th></tr></thead>
@@ -278,40 +302,55 @@
         <!-- Transfers -->
         <section id="transfers" class="section">
             <h2>Transfer Funds</h2>
-            <div class="card">
-                <label>From:</label>
-                <select id="fromAccount">
-                    <option value="checking">Checking</option>
-                    <option value="savings">Savings</option>
-                </select>
-                <label>To:</label>
-                <select id="toAccount">
-                    <option value="savings">Savings</option>
-                    <option value="checking">Checking</option>
-                </select>
-                <label>Amount:</label>
-                <input type="number" id="transferAmount" step="0.01" min="0">
-                <label>Description:</label>
-                <input type="text" id="transferDesc">
+            <div class="card transfer-form">
+                <div class="form-group">
+                    <label>From:</label>
+                    <select id="fromAccount">
+                        <option value="checking">Checking</option>
+                        <option value="savings">Savings</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>To:</label>
+                    <select id="toAccount">
+                        <option value="savings">Savings</option>
+                        <option value="checking">Checking</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Amount:</label>
+                    <input type="number" id="transferAmount" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Description:</label>
+                    <input type="text" id="transferDesc">
+                </div>
                 <button class="btn-primary" onclick="performTransfer()">Transfer</button>
             </div>
         </section>
 
         <!-- Pay Bills -->
         <section id="bills" class="section">
-            <h2>Pay Bills</h2>
+            <h2>Manage Bills</h2>
             <div class="card">
-                <label>Payee:</label>
-                <input type="text" id="payee">
-                <label>Amount:</label>
-                <input type="number" id="billAmount" step="0.01" min="0">
-                <label>Due Date:</label>
-                <input type="date" id="dueDate">
-                <button class="btn-primary" onclick="payBill()">Pay Bill</button>
+                <div class="form-group">
+                    <label>Payee:</label>
+                    <input type="text" id="payee">
+                </div>
+                <div class="form-group">
+                    <label>Amount:</label>
+                    <input type="number" id="billAmount" step="0.01" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Due Date:</label>
+                    <input type="date" id="dueDate">
+                </div>
+                <button class="btn-primary" onclick="scheduleBill()">Schedule Bill</button>
+                <button class="btn-accent" onclick="payBill()">Pay Now</button>
             </div>
             <h3>Upcoming Bills</h3>
             <table id="upcomingBills">
-                <thead><tr><th>Payee</th><th>Amount</th><th>Due Date</th></tr></thead>
+                <thead><tr><th>Payee</th><th>Amount</th><th>Due Date</th><th>Action</th></tr></thead>
                 <tbody></tbody>
             </table>
         </section>
@@ -320,15 +359,21 @@
         <section id="budgets" class="section">
             <h2>Budgets & Savings Goals</h2>
             <div id="budgetsList"></div>
-            <div>
-                <input type="text" id="newBudgetCategory" placeholder="Category">
-                <input type="number" id="newBudgetAmount" step="0.01" min="0" placeholder="Budget">
-                <button class="btn-primary" onclick="addBudget()">Add Budget</button>
+            <div class="card">
+                <div class="form-group">
+                    <input type="text" id="newBudgetCategory" placeholder="Category">
+                    <input type="number" id="newBudgetAmount" step="0.01" min="0" placeholder="Budget">
+                    <button class="btn-primary" onclick="addBudget()">Add Budget</button>
+                </div>
             </div>
             <h3>Savings Goal</h3>
-            <input type="number" id="goalTarget" step="0.01" min="0" placeholder="Target Amount">
-            <input type="text" id="goalDesc" placeholder="Goal Description">
-            <button class="btn-primary" onclick="setGoal()">Set Goal</button>
+            <div class="card">
+                <div class="form-group">
+                    <input type="number" id="goalTarget" step="0.01" min="0" placeholder="Target Amount">
+                    <input type="text" id="goalDesc" placeholder="Goal Description">
+                    <button class="btn-primary" onclick="setGoal()">Set Goal</button>
+                </div>
+            </div>
         </section>
 
         <!-- Reports -->
@@ -350,6 +395,28 @@
             <span class="close" onclick="closeModal()">&times;</span>
             <h3 id="modalTitle">Edit</h3>
             <!-- Dynamic content -->
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeChangePasswordModal()">&times;</span>
+            <h3>Change Password</h3>
+            <div class="form-group">
+                <label for="oldPassword">Old Password:</label>
+                <input type="password" id="oldPassword" placeholder="Enter old password">
+            </div>
+            <div class="form-group">
+                <label for="newPassword">New Password:</label>
+                <input type="password" id="newPassword" placeholder="Enter new password">
+            </div>
+            <div class="form-group">
+                <label for="confirmNewPassword">Confirm New Password:</label>
+                <input type="password" id="confirmNewPassword" placeholder="Confirm new password">
+            </div>
+            <button class="btn-primary" onclick="changePassword()">Change Password</button>
+            <p id="passwordError" style="color: var(--danger-color); display: none;"></p>
         </div>
     </div>
 
@@ -419,7 +486,7 @@
             document.getElementById('currentUser').textContent = `Welcome, ${username}!`;
             loadUserData();
             updateDisplay();
-            showNotification(`Welcome to Manassaksi Banking, ${username}!`, 'success');
+            showNotification(`Welcome to Manassaksi Byanking, ${username}!`, 'success');
         }
 
         function logout() {
@@ -490,6 +557,61 @@
             if (sectionId === 'budgets') updateBudgets();
             if (sectionId === 'reports') updateReports();
             if (sectionId === 'add-transaction') clearTransactionForm();
+            if (sectionId === 'bills') updateBills();
+        }
+
+        function showChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'block';
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+            document.getElementById('passwordError').style.display = 'none';
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').style.display = 'none';
+        }
+
+        function changePassword() {
+            const oldPassword = document.getElementById('oldPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+            const errorEl = document.getElementById('passwordError');
+
+            if (!oldPassword || !newPassword || !confirmNewPassword) {
+                errorEl.textContent = 'Please fill all fields.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (oldPassword !== users[currentUser]) {
+                errorEl.textContent = 'Old password is incorrect.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (newPassword !== confirmNewPassword) {
+                errorEl.textContent = 'New passwords do not match.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (newPassword === oldPassword) {
+                errorEl.textContent = 'New password must be different from old.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                errorEl.textContent = 'New password must be at least 6 characters.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            users[currentUser] = newPassword;
+            localStorage.setItem('users', JSON.stringify(users));
+            closeChangePasswordModal();
+            showNotification('Password changed successfully!', 'success');
         }
 
         function clearTransactionForm() {
@@ -570,13 +692,33 @@
             showNotification('Transfer successful!', 'success');
         }
 
-        function payBill() {
-            const payee = document.getElementById('payee').value;
+        function scheduleBill() {
+            const payee = document.getElementById('payee').value.trim();
             const amount = parseFloat(document.getElementById('billAmount').value);
             const dueDate = document.getElementById('dueDate').value;
-            if (!payee || isNaN(amount) || amount <= 0) return;
+            if (!payee || isNaN(amount) || amount <= 0 || !dueDate) {
+                showNotification('Please enter valid payee, amount, and due date.', 'error');
+                return;
+            }
+            bills.push({ id: Date.now(), payee, amount, dueDate, paid: false });
+            document.getElementById('payee').value = '';
+            document.getElementById('billAmount').value = '';
+            document.getElementById('dueDate').value = '';
+            saveData();
+            updateBills();
+            showNotification('Bill scheduled successfully!', 'success');
+        }
+
+        function payBill() {
+            const payee = document.getElementById('payee').value.trim();
+            const amount = parseFloat(document.getElementById('billAmount').value);
+            const dueDate = document.getElementById('dueDate').value;
+            if (!payee || isNaN(amount) || amount <= 0) {
+                showNotification('Please enter valid payee and amount.', 'error');
+                return;
+            }
             addTransaction('expense', `Bill Payment to ${payee}`, amount, 'Bills', 'checking');
-            bills.push({ payee, amount, dueDate, paid: true });
+            bills.push({ id: Date.now(), payee, amount, dueDate, paid: true });
             document.getElementById('payee').value = '';
             document.getElementById('billAmount').value = '';
             document.getElementById('dueDate').value = '';
@@ -585,12 +727,45 @@
             showNotification('Bill paid!', 'success');
         }
 
+        function payScheduledBill(billId) {
+            const billIndex = bills.findIndex(b => b.id === billId);
+            if (billIndex === -1) return;
+            const bill = bills[billIndex];
+            addTransaction('expense', `Paid scheduled bill: ${bill.payee}`, bill.amount, 'Bills', 'checking');
+            bills[billIndex].paid = true;
+            saveData();
+            updateBills();
+            showNotification(`Bill paid: ${bill.payee}`, 'success');
+        }
+
+        function deleteScheduledBill(billId) {
+            const billIndex = bills.findIndex(b => b.id === billId);
+            if (billIndex === -1) return;
+            bills.splice(billIndex, 1);
+            saveData();
+            updateBills();
+            showNotification('Bill deleted.', 'success');
+        }
+
         function updateBills() {
             const billsBody = document.querySelector('#upcomingBills tbody');
             billsBody.innerHTML = '';
-            bills.filter(b => !b.paid).forEach(bill => {
+            let upcoming = bills.filter(b => !b.paid).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            if (upcoming.length === 0) {
+                billsBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No upcoming bills.</td></tr>';
+                return;
+            }
+            upcoming.forEach((bill) => {
                 const row = document.createElement('tr');
-                row.innerHTML = `<td>${bill.payee}</td><td>₹${bill.amount.toFixed(2)}</td><td>${bill.dueDate}</td>`;
+                row.innerHTML = `
+                    <td>${bill.payee}</td>
+                    <td>₹${bill.amount.toFixed(2)}</td>
+                    <td>${bill.dueDate}</td>
+                    <td>
+                        <button class="btn-primary" onclick="payScheduledBill(${bill.id})" style="padding: 5px 10px; font-size: 12px;">Pay</button>
+                        <button class="btn-secondary" onclick="deleteScheduledBill(${bill.id})" style="padding: 5px 10px; font-size: 12px; background: var(--danger-color);">Delete</button>
+                    </td>
+                `;
                 billsBody.appendChild(row);
             });
         }
@@ -598,10 +773,13 @@
         function setGoal() {
             const target = parseFloat(document.getElementById('goalTarget').value);
             const desc = document.getElementById('goalDesc').value;
-            if (isNaN(target) || target <= 0) return;
+            if (isNaN(target) || target <= 0) {
+                showNotification('Please enter a valid target amount.', 'error');
+                return;
+            }
             savingsGoal.target = target;
-            savingsGoal.desc = desc;
-            savingsGoal.current = accounts.savings; // Initial current
+            savingsGoal.desc = desc || 'General Savings';
+            savingsGoal.current = accounts.savings; // Update current
             document.getElementById('goalTarget').value = '';
             document.getElementById('goalDesc').value = '';
             saveData();
@@ -610,14 +788,14 @@
 
         function updateTransactions() {
             let filtered = transactions;
+            if (searchTerm) filtered = filtered.filter(tx => tx.description.toLowerCase().includes(searchTerm.toLowerCase()));
             if (filters.from) filtered = filtered.filter(tx => tx.date >= filters.from);
             if (filters.to) filtered = filtered.filter(tx => tx.date <= filters.to);
             if (filters.account) filtered = filtered.filter(tx => tx.account === filters.account);
             filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
             const txBody = document.querySelector('#transactionsTable tbody');
             txBody.innerHTML = '';
-            filtered.forEach((tx, idx) => {
-                const globalIndex = transactions.indexOf(tx);
+            filtered.forEach((tx) => {
                 const row = document.createElement('tr');
                 row.className = tx.amount > 0 ? 'income-row' : 'expense-row';
                 row.innerHTML = `
@@ -632,7 +810,8 @@
             });
         }
 
-        function applyTxFilters() {
+        function applyFilters() {
+            searchTerm = document.getElementById('searchTx').value.trim();
             filters.from = document.getElementById('filterFromTx').value;
             filters.to = document.getElementById('filterToTx').value;
             filters.account = document.getElementById('filterAccount').value;
@@ -640,7 +819,6 @@
         }
 
         function updateBudgets() {
-            // Similar to previous, but focused on expenses from checking/savings
             const budgetsList = document.getElementById('budgetsList');
             budgetsList.innerHTML = '';
             Object.entries(budgets).forEach(([cat, budgetAmt]) => {
@@ -693,11 +871,10 @@
             const ctx = document.getElementById('trendChart').getContext('2d');
             const sortedTx = [...tx].sort((a, b) => new Date(a.date) - new Date(b.date));
             const dates = [...new Set(sortedTx.map(t => t.date))];
+            let running = 0;
             const balances = [];
-            let running = accounts.checking + accounts.savings;
-            balances.push(running);
-            for (let i = 1; i < dates.length; i++) {
-                const dayTx = sortedTx.filter(t => t.date === dates[i]);
+            for (let date of dates) {
+                const dayTx = sortedTx.filter(t => t.date === date);
                 running += dayTx.reduce((s, t) => s + t.amount, 0);
                 balances.push(running);
             }
@@ -712,27 +889,36 @@
         function addBudget() {
             const cat = document.getElementById('newBudgetCategory').value.trim();
             const amt = parseFloat(document.getElementById('newBudgetAmount').value);
-            if (cat && !isNaN(amt) && amt > 0) {
+            if (cat && !isNaN(amt) && amt > 0 && !budgets[cat]) {
                 budgets[cat] = amt;
                 document.getElementById('newBudgetCategory').value = '';
                 document.getElementById('newBudgetAmount').value = '';
                 saveData();
+                showNotification('Budget added!', 'success');
+            } else if (budgets[cat]) {
+                showNotification('Budget for this category already exists.', 'error');
             }
         }
 
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text('Manassaksi Banking Statement', 20, 20);
+            doc.text('Manassaksi Byanking Statement', 20, 20);
             doc.text(`User: ${currentUser}`, 20, 30);
-            doc.text(`Total Balance: ₹${(accounts.checking + accounts.savings).toFixed(2)}`, 20, 40);
-            let y = 50;
-            transactions.slice(-10).forEach(tx => {
-                if (y > 280) { doc.addPage(); y = 20; }
-                doc.text(`${tx.date} - ${tx.description}: ${tx.amount > 0 ? '+' : ''}₹${tx.amount.toFixed(2)}`, 20, y);
-                y += 10;
+            doc.text(`Period: ${currentMonth}`, 20, 40);
+            doc.text(`Total Balance: ₹${(accounts.checking + accounts.savings).toFixed(2)}`, 20, 50);
+            let y = 60;
+            const recentTx = transactions.slice(-20).reverse();
+            recentTx.forEach(tx => {
+                if (y > 280) { 
+                    doc.addPage(); 
+                    y = 20; 
+                }
+                doc.text(`${tx.date} | ${tx.type} | ${tx.description} | ₹${tx.amount.toFixed(2)}`, 20, y);
+                y += 8;
             });
             doc.save(`statement_${currentUser}_${currentMonth}.pdf`);
+            showNotification('PDF statement generated!', 'success');
         }
 
         function showNotification(msg, type = 'success') {
