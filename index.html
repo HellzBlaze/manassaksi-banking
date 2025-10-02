@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manassaksi Byanking - Mobile Banking App</title>
+    <title>Manassaksi Banking - Mobile Banking App</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -184,7 +184,7 @@
     <!-- Main Content -->
     <main id="main">
         <div class="header">
-            <h1>Manassaksi Byanking</h1>
+            <h1>Manassaksi Banking</h1>
             <div>
                 <span id="currentUser"></span>
                 <button class="menu-toggle" onclick="toggleSidebar()" aria-label="Toggle menu"><i class="fas fa-bars"></i></button>
@@ -903,7 +903,7 @@
         function exportToPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text('Manassaksi Byanking Statement', 20, 20);
+            doc.text('Manassaksi Banking Statement', 20, 20);
             doc.text(`User: ${currentUser}`, 20, 30);
             doc.text(`Period: ${currentMonth}`, 20, 40);
             doc.text(`Total Balance: ₹${(accounts.checking + accounts.savings).toFixed(2)}`, 20, 50);
