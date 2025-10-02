@@ -55,6 +55,7 @@
         .card:hover { transform: translateY(-5px); }
         .balance-card { background: linear-gradient(135deg, var(--success-color), var(--primary-color)); color: white; text-align: center; }
         .account-card { border-left: 4px solid var(--secondary-color); }
+        .goal-card { border-left: 4px solid var(--accent-color); }
         .form-group { margin-bottom: 15px; }
         .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
         .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 5px; }
@@ -87,21 +88,27 @@
         .close:hover { color: var(--danger-color); }
         #chartContainer, #trendChartContainer { position: relative; height: 300px; margin: 20px 0; background: var(--bg-color); border-radius: 10px; padding: 10px; }
         .budget-row { 
-            display: flex; align-items: center; margin-bottom: 10px; padding: 10px; 
+            display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; padding: 10px; 
             background: linear-gradient(90deg, var(--bg-color), rgba(76, 175, 80, 0.1)); border-radius: 5px;
         }
         .budget-progress { 
             width: 150px; height: 20px; background-color: var(--border-color); border-radius: 10px; 
-            overflow: hidden; margin-left: 10px; 
+            overflow: hidden; margin-left: 10px; margin-right: 10px;
         }
         .budget-bar { 
             height: 100%; background: linear-gradient(90deg, var(--success-color), var(--primary-color)); 
             transition: width 0.3s ease; 
         }
         .budget-bar.over { background: linear-gradient(90deg, var(--danger-color), #E57373); }
-        .goal-card { border-left: 4px solid var(--accent-color); }
         .goal-progress { width: 100%; height: 20px; background: var(--border-color); border-radius: 10px; overflow: hidden; margin-top: 10px; }
         .goal-fill { height: 100%; background: var(--accent-color); transition: width 0.3s; }
+        .goals-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+        .goal-item { background: var(--card-bg); border-radius: 10px; padding: 15px; box-shadow: var(--shadow); border-left: 4px solid var(--accent-color); }
+        .budget-actions, .goal-actions { display: flex; gap: 5px; }
+        .btn-small { padding: 5px 10px; font-size: 12px; border: none; border-radius: 3px; cursor: pointer; }
+        .btn-edit { background: var(--secondary-color); color: white; }
+        .btn-delete { background: var(--danger-color); color: white; }
+        .btn-contribute { background: var(--primary-color); color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; margin-top: 10px; }
         #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; display: none; }
         .filter-section { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .filter-section input, .filter-section select { padding: 8px; border: 1px solid var(--border-color); border-radius: 5px; }
@@ -115,7 +122,9 @@
             #main { margin-left: 0; }
             .transfer-form, .transaction-form { grid-template-columns: 1fr; }
             .filter-section { flex-direction: column; }
-            .dashboard-grid { grid-template-columns: 1fr; }
+            .dashboard-grid, .goals-list { grid-template-columns: 1fr; }
+            .budget-row { flex-direction: column; align-items: flex-start; }
+            .budget-progress { margin: 10px 0; }
         }
     </style>
 </head>
@@ -123,7 +132,7 @@
     <!-- Login Screen -->
     <div id="loginScreen" class="login-screen">
         <div class="login-form">
-            <h2><i class="fas fa-university"></i> Manassaksi Byanking Login</h2>
+            <h2><i class="fas fa-university"></i> Manassaksi Banking Login</h2>
             <input type="text" id="usernameInput" placeholder="Username" aria-label="Username">
             <input type="password" id="passwordInput" placeholder="Password" aria-label="Password">
             <button class="btn-primary" onclick="login()"><i class="fas fa-sign-in-alt"></i> Login</button>
@@ -250,10 +259,9 @@
                     <h3>Savings</h3>
                     <div id="savingsBalance">₹0.00</div>
                 </div>
-                <div class="card goal-card">
-                    <h3>Savings Goal</h3>
-                    <div id="goalProgress">0%</div>
-                    <div class="goal-progress"><div class="goal-fill" id="goalFill" style="width: 0%"></div></div>
+                <div class="card goal-card" id="goalsDashboard">
+                    <h3>Savings Goals</h3>
+                    <div id="dashboardGoals">No goals set</div>
                 </div>
             </div>
             <div class="card">
@@ -305,7 +313,7 @@
             <div class="card transfer-form">
                 <div class="form-group">
                     <label>From:</label>
-                    <select id="fromAccount">
+                    <select id="fromAccount" onchange="updateToAccountOptions()">
                         <option value="checking">Checking</option>
                         <option value="savings">Savings</option>
                     </select>
@@ -357,21 +365,22 @@
 
         <!-- Budgets & Goals -->
         <section id="budgets" class="section">
-            <h2>Budgets & Savings Goals</h2>
+            <h2>Budgets</h2>
             <div id="budgetsList"></div>
             <div class="card">
                 <div class="form-group">
                     <input type="text" id="newBudgetCategory" placeholder="Category">
-                    <input type="number" id="newBudgetAmount" step="0.01" min="0" placeholder="Budget">
+                    <input type="number" id="newBudgetAmount" step="0.01" min="0" placeholder="Budget Amount">
                     <button class="btn-primary" onclick="addBudget()">Add Budget</button>
                 </div>
             </div>
-            <h3>Savings Goal</h3>
+            <h2>Savings Goals</h2>
+            <div class="goals-list" id="goalsList"></div>
             <div class="card">
                 <div class="form-group">
                     <input type="number" id="goalTarget" step="0.01" min="0" placeholder="Target Amount">
                     <input type="text" id="goalDesc" placeholder="Goal Description">
-                    <button class="btn-primary" onclick="setGoal()">Set Goal</button>
+                    <button class="btn-primary" onclick="addGoal()">Add Goal</button>
                 </div>
             </div>
         </section>
@@ -389,12 +398,12 @@
         </section>
     </main>
 
-    <!-- Edit Modal (reused for transfers/bills) -->
+    <!-- Edit Modal (reused for budgets/goals) -->
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeModal()">&times;</span>
             <h3 id="modalTitle">Edit</h3>
-            <!-- Dynamic content -->
+            <div id="modalBody"></div>
         </div>
     </div>
 
@@ -427,10 +436,12 @@
         let transactions = [];
         let budgets = {};
         let accounts = { checking: 0, savings: 0 };
-        let savingsGoal = { target: 0, current: 0, desc: '' };
+        let savingsGoals = [];
         let bills = [];
         let currentMonth = new Date().toISOString().slice(0, 7);
         let editingIndex = -1;
+        let editingType = ''; // 'budget' or 'goal'
+        let editingKey = '';
         let filters = { from: '', to: '', account: '' };
         let searchTerm = '';
         let expensesChart, trendChart;
@@ -466,7 +477,7 @@
             localStorage.setItem(`transactions_${username}`, JSON.stringify([]));
             localStorage.setItem(`budgets_${username}`, JSON.stringify({}));
             localStorage.setItem(`accounts_${username}`, JSON.stringify({ checking: 0, savings: 0 }));
-            localStorage.setItem(`savingsGoal_${username}`, JSON.stringify({ target: 0, current: 0, desc: '' }));
+            localStorage.setItem(`savingsGoals_${username}`, JSON.stringify([]));
             localStorage.setItem(`bills_${username}`, JSON.stringify([]));
             document.getElementById('registerError').style.display = 'none';
             showLogin();
@@ -504,7 +515,7 @@
             transactions = JSON.parse(localStorage.getItem(`transactions_${currentUser}`)) || [];
             budgets = JSON.parse(localStorage.getItem(`budgets_${currentUser}`)) || {};
             accounts = JSON.parse(localStorage.getItem(`accounts_${currentUser}`)) || { checking: 0, savings: 0 };
-            savingsGoal = JSON.parse(localStorage.getItem(`savingsGoal_${currentUser}`)) || { target: 0, current: 0, desc: '' };
+            savingsGoals = JSON.parse(localStorage.getItem(`savingsGoals_${currentUser}`)) || [];
             bills = JSON.parse(localStorage.getItem(`bills_${currentUser}`)) || [];
             updateBills();
         }
@@ -513,7 +524,7 @@
             localStorage.setItem(`transactions_${currentUser}`, JSON.stringify(transactions));
             localStorage.setItem(`budgets_${currentUser}`, JSON.stringify(budgets));
             localStorage.setItem(`accounts_${currentUser}`, JSON.stringify(accounts));
-            localStorage.setItem(`savingsGoal_${currentUser}`, JSON.stringify(savingsGoal));
+            localStorage.setItem(`savingsGoals_${currentUser}`, JSON.stringify(savingsGoals));
             localStorage.setItem(`bills_${currentUser}`, JSON.stringify(bills));
             updateDisplay();
         }
@@ -543,6 +554,13 @@
             overlay.style.display = 'none';
         }
 
+        function updateToAccountOptions() {
+            const fromAccount = document.getElementById('fromAccount').value;
+            const toAccount = document.getElementById('toAccount');
+            const otherAccount = fromAccount === 'checking' ? 'savings' : 'checking';
+            toAccount.innerHTML = `<option value="${otherAccount}">${otherAccount.charAt(0).toUpperCase() + otherAccount.slice(1)}</option>`;
+        }
+
         function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById(sectionId).classList.add('active');
@@ -554,10 +572,14 @@
             }
             if (sectionId === 'dashboard') updateDashboard();
             if (sectionId === 'transactions') updateTransactions();
-            if (sectionId === 'budgets') updateBudgets();
+            if (sectionId === 'budgets') {
+                updateBudgets();
+                updateGoals();
+            }
             if (sectionId === 'reports') updateReports();
             if (sectionId === 'add-transaction') clearTransactionForm();
             if (sectionId === 'bills') updateBills();
+            if (sectionId === 'transfers') updateToAccountOptions();
         }
 
         function showChangePasswordModal() {
@@ -635,6 +657,10 @@
             addTransaction(type, description, amount, category, account);
             clearTransactionForm();
             showNotification('Transaction added successfully!', 'success');
+            // Update budgets if in budgets section
+            if (document.getElementById('budgets').classList.contains('active')) {
+                updateBudgets();
+            }
         }
 
         function saveData() {
@@ -648,9 +674,7 @@
             document.getElementById('savingsBalance').textContent = `₹${ accounts.savings.toFixed(2) }`;
             document.getElementById('checkingBalanceDetail').textContent = accounts.checking.toFixed(2);
             document.getElementById('savingsBalanceDetail').textContent = accounts.savings.toFixed(2);
-            const goalPct = savingsGoal.target > 0 ? (savingsGoal.current / savingsGoal.target * 100) : 0;
-            document.getElementById('goalProgress').textContent = `${goalPct.toFixed(0)}% - ${savingsGoal.desc}`;
-            document.getElementById('goalFill').style.width = `${Math.min(goalPct, 100)}%`;
+            updateDashboardGoals();
         }
 
         function updateDashboard() {
@@ -662,12 +686,33 @@
                 row.innerHTML = `<td>${tx.date}</td><td>${tx.description}</td><td>${tx.amount > 0 ? '+' : ''}₹${Math.abs(tx.amount).toFixed(2)}</td>`;
                 recentBody.appendChild(row);
             });
+            updateDashboardGoals();
+        }
+
+        function updateDashboardGoals() {
+            const dashboardGoals = document.getElementById('dashboardGoals');
+            if (savingsGoals.length === 0) {
+                dashboardGoals.innerHTML = 'No goals set';
+                return;
+            }
+            dashboardGoals.innerHTML = savingsGoals.map(goal => {
+                const pct = goal.target > 0 ? (goal.current / goal.target * 100) : 0;
+                return `<div style="margin-bottom: 10px;">
+                    <small>${goal.desc}: ${pct.toFixed(0)}% (₹${goal.current.toFixed(2)} / ₹${goal.target.toFixed(2)})</small>
+                    <div class="goal-progress" style="width: 100%;"><div class="goal-fill" style="width: ${Math.min(pct, 100)}%"></div></div>
+                </div>`;
+            }).join('');
         }
 
         function addTransaction(type, description, amount, category = 'Other', account = 'checking', currency = 'INR') {
             const txAmount = type === 'income' ? amount : -amount;
             accounts[account] += txAmount;
-            if (type === 'income' && account === 'checking') savingsGoal.current += amount * 0.1; // Auto-save 10%
+            // Auto-contribute 10% of income to first goal if exists
+            if (type === 'income' && savingsGoals.length > 0) {
+                const contrib = amount * 0.1;
+                savingsGoals[0].current = Math.min(savingsGoals[0].current + contrib, savingsGoals[0].target);
+                showNotification(`Auto-contributed ₹${contrib.toFixed(2)} to ${savingsGoals[0].desc}`, 'success');
+            }
             transactions.push({ date: new Date().toISOString().split('T')[0], type, description, category, amount: txAmount, account, currency });
             saveData();
             showNotification(`${type} added: ₹${amount.toFixed(2)}`, 'success');
@@ -676,10 +721,15 @@
         function performTransfer() {
             const from = document.getElementById('fromAccount').value;
             const to = document.getElementById('toAccount').value;
-            const amount = parseFloat(document.getElementById('transferAmount').value);
-            const desc = document.getElementById('transferDesc').value || 'Transfer';
-            if (amount <= 0 || accounts[from] < amount) {
-                showNotification('Invalid transfer amount!', 'error');
+            const amountStr = document.getElementById('transferAmount').value;
+            const amount = parseFloat(amountStr);
+            const desc = document.getElementById('transferDesc').value.trim() || 'Transfer';
+            if (from === to) {
+                showNotification('Cannot transfer to the same account!', 'error');
+                return;
+            }
+            if (isNaN(amount) || amount <= 0 || accounts[from] < amount) {
+                showNotification('Invalid transfer amount or insufficient balance!', 'error');
                 return;
             }
             accounts[from] -= amount;
@@ -770,20 +820,201 @@
             });
         }
 
-        function setGoal() {
+        function addBudget() {
+            const cat = document.getElementById('newBudgetCategory').value.trim();
+            const amt = parseFloat(document.getElementById('newBudgetAmount').value);
+            if (cat && !isNaN(amt) && amt > 0 && !budgets[cat]) {
+                budgets[cat] = amt;
+                document.getElementById('newBudgetCategory').value = '';
+                document.getElementById('newBudgetAmount').value = '';
+                saveData();
+                updateBudgets();
+                showNotification('Budget added!', 'success');
+            } else if (budgets[cat]) {
+                showNotification('Budget for this category already exists.', 'error');
+            } else {
+                showNotification('Please enter valid category and amount.', 'error');
+            }
+        }
+
+        function deleteBudget(cat) {
+            if (confirm(`Delete budget for ${cat}?`)) {
+                delete budgets[cat];
+                saveData();
+                updateBudgets();
+                showNotification('Budget deleted!', 'success');
+            }
+        }
+
+        function editBudget(cat) {
+            editingType = 'budget';
+            editingKey = cat;
+            document.getElementById('modalTitle').textContent = `Edit Budget for ${cat}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="form-group">
+                    <label>Amount:</label>
+                    <input type="number" id="editBudgetAmount" step="0.01" min="0" value="${budgets[cat]}">
+                </div>
+                <button class="btn-primary" onclick="saveEdit()">Save</button>
+            `;
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function addGoal() {
             const target = parseFloat(document.getElementById('goalTarget').value);
-            const desc = document.getElementById('goalDesc').value;
+            const desc = document.getElementById('goalDesc').value.trim() || 'New Goal';
             if (isNaN(target) || target <= 0) {
                 showNotification('Please enter a valid target amount.', 'error');
                 return;
             }
-            savingsGoal.target = target;
-            savingsGoal.desc = desc || 'General Savings';
-            savingsGoal.current = accounts.savings; // Update current
+            savingsGoals.push({ id: Date.now(), target, current: 0, desc });
             document.getElementById('goalTarget').value = '';
             document.getElementById('goalDesc').value = '';
             saveData();
-            showNotification('Savings goal set!', 'success');
+            updateGoals();
+            showNotification('Goal added!', 'success');
+        }
+
+        function deleteGoal(id) {
+            if (confirm('Delete this goal?')) {
+                const index = savingsGoals.findIndex(g => g.id === id);
+                if (index > -1) {
+                    savingsGoals.splice(index, 1);
+                    saveData();
+                    updateGoals();
+                    updateDashboardGoals();
+                    showNotification('Goal deleted!', 'success');
+                }
+            }
+        }
+
+        function editGoal(id) {
+            editingType = 'goal';
+            editingKey = id;
+            const goal = savingsGoals.find(g => g.id === id);
+            document.getElementById('modalTitle').textContent = `Edit Goal: ${goal.desc}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div class="form-group">
+                    <label>Description:</label>
+                    <input type="text" id="editGoalDesc" value="${goal.desc}">
+                </div>
+                <div class="form-group">
+                    <label>Target Amount:</label>
+                    <input type="number" id="editGoalTarget" step="0.01" min="0" value="${goal.target}">
+                </div>
+                <button class="btn-primary" onclick="saveEdit()">Save</button>
+            `;
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function contributeToGoal(id) {
+            const goal = savingsGoals.find(g => g.id === id);
+            const contrib = parseFloat(prompt(`Contribute to ${goal.desc} (current: ₹${goal.current.toFixed(2)}):`));
+            if (!isNaN(contrib) && contrib > 0 && accounts.savings >= contrib) {
+                goal.current = Math.min(goal.current + contrib, goal.target);
+                accounts.savings -= contrib;
+                addTransaction('expense', `Contribution to ${goal.desc}`, contrib, 'Savings', 'savings');
+                saveData();
+                updateGoals();
+                updateDisplay();
+                showNotification(`Contributed ₹${contrib.toFixed(2)} to ${goal.desc}!`, 'success');
+            } else if (isNaN(contrib) || contrib <= 0) {
+                showNotification('Invalid contribution amount.', 'error');
+            } else {
+                showNotification('Insufficient savings balance.', 'error');
+            }
+        }
+
+        function saveEdit() {
+            if (editingType === 'budget') {
+                const amt = parseFloat(document.getElementById('editBudgetAmount').value);
+                if (!isNaN(amt) && amt > 0) {
+                    budgets[editingKey] = amt;
+                    saveData();
+                    updateBudgets();
+                    showNotification('Budget updated!', 'success');
+                } else {
+                    showNotification('Invalid amount.', 'error');
+                }
+            } else if (editingType === 'goal') {
+                const id = parseInt(editingKey);
+                const goal = savingsGoals.find(g => g.id === id);
+                const newDesc = document.getElementById('editGoalDesc').value.trim();
+                const newTarget = parseFloat(document.getElementById('editGoalTarget').value);
+                if (newDesc) goal.desc = newDesc;
+                if (!isNaN(newTarget) && newTarget > 0) goal.target = newTarget;
+                saveData();
+                updateGoals();
+                updateDashboardGoals();
+                showNotification('Goal updated!', 'success');
+            }
+            closeModal();
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+            editingType = '';
+            editingKey = '';
+        }
+
+        function updateBudgets() {
+            const budgetsList = document.getElementById('budgetsList');
+            budgetsList.innerHTML = '';
+            Object.entries(budgets).forEach(([cat, budgetAmt]) => {
+                const actual = getMonthlyActual(cat);
+                const percentage = budgetAmt > 0 ? Math.min((actual / budgetAmt) * 100, 100) : 0;
+                const isOver = actual > budgetAmt;
+                const div = document.createElement('div');
+                div.className = 'budget-row';
+                div.innerHTML = `
+                    <span>${cat}: ₹${budgetAmt.toFixed(2)} (Actual: ₹${actual.toFixed(2)})</span>
+                    <div class="budget-progress">
+                        <div class="budget-bar ${isOver ? 'over' : ''}" style="width: ${percentage}%"></div>
+                    </div>
+                    <span>${percentage.toFixed(0)}%</span>
+                    <div class="budget-actions">
+                        <button class="btn-small btn-edit" onclick="editBudget('${cat}')"><i class="fas fa-edit"></i></button>
+                        <button class="btn-small btn-delete" onclick="deleteBudget('${cat}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                budgetsList.appendChild(div);
+                if (isOver) {
+                    showNotification(`Over budget in ${cat}!`, 'error');
+                }
+            });
+            if (Object.keys(budgets).length === 0) {
+                budgetsList.innerHTML = '<p>No budgets set. Add one above.</p>';
+            }
+        }
+
+        function updateGoals() {
+            const goalsList = document.getElementById('goalsList');
+            goalsList.innerHTML = '';
+            savingsGoals.forEach(goal => {
+                const pct = goal.target > 0 ? (goal.current / goal.target * 100) : 0;
+                const goalDiv = document.createElement('div');
+                goalDiv.className = 'goal-item';
+                goalDiv.innerHTML = `
+                    <h4>${goal.desc}</h4>
+                    <p>Progress: ${pct.toFixed(0)}% (₹${goal.current.toFixed(2)} / ₹${goal.target.toFixed(2)})</p>
+                    <div class="goal-progress"><div class="goal-fill" style="width: ${Math.min(pct, 100)}%"></div></div>
+                    <div class="goal-actions">
+                        <button class="btn-small btn-edit" onclick="editGoal(${goal.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn-small btn-delete" onclick="deleteGoal(${goal.id})"><i class="fas fa-trash"></i></button>
+                        <button class="btn-contribute" onclick="contributeToGoal(${goal.id})">Contribute</button>
+                    </div>
+                `;
+                goalsList.appendChild(goalDiv);
+            });
+            if (savingsGoals.length === 0) {
+                goalsList.innerHTML = '<p>No goals set. Add one above.</p>';
+            }
+        }
+
+        function getMonthlyActual(cat) {
+            return transactions
+                .filter(tx => tx.date.startsWith(currentMonth) && tx.category === cat && tx.amount < 0)
+                .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
         }
 
         function updateTransactions() {
@@ -816,32 +1047,6 @@
             filters.to = document.getElementById('filterToTx').value;
             filters.account = document.getElementById('filterAccount').value;
             updateTransactions();
-        }
-
-        function updateBudgets() {
-            const budgetsList = document.getElementById('budgetsList');
-            budgetsList.innerHTML = '';
-            Object.entries(budgets).forEach(([cat, budgetAmt]) => {
-                const actual = getMonthlyActual(cat);
-                const percentage = budgetAmt > 0 ? Math.min((actual / budgetAmt) * 100, 100) : 0;
-                const isOver = actual > budgetAmt;
-                const div = document.createElement('div');
-                div.className = 'budget-row';
-                div.innerHTML = `
-                    <span>${cat}: ₹${budgetAmt.toFixed(2)} (Actual: ₹${actual.toFixed(2)})</span>
-                    <div class="budget-progress">
-                        <div class="budget-bar ${isOver ? 'over' : ''}" style="width: ${percentage}%"></div>
-                    </div>
-                    <span>${percentage.toFixed(0)}%</span>
-                `;
-                budgetsList.appendChild(div);
-            });
-        }
-
-        function getMonthlyActual(cat) {
-            return transactions
-                .filter(tx => tx.date.startsWith(currentMonth) && tx.category === cat && tx.amount < 0)
-                .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
         }
 
         function updateReports() {
@@ -884,20 +1089,6 @@
                 data: { labels: dates, datasets: [{ label: 'Balance', data: balances, borderColor: 'rgb(75, 192, 192)', backgroundColor: 'rgba(75, 192, 192, 0.2)' }] },
                 options: { responsive: true, maintainAspectRatio: false }
             });
-        }
-
-        function addBudget() {
-            const cat = document.getElementById('newBudgetCategory').value.trim();
-            const amt = parseFloat(document.getElementById('newBudgetAmount').value);
-            if (cat && !isNaN(amt) && amt > 0 && !budgets[cat]) {
-                budgets[cat] = amt;
-                document.getElementById('newBudgetCategory').value = '';
-                document.getElementById('newBudgetAmount').value = '';
-                saveData();
-                showNotification('Budget added!', 'success');
-            } else if (budgets[cat]) {
-                showNotification('Budget for this category already exists.', 'error');
-            }
         }
 
         function exportToPDF() {
